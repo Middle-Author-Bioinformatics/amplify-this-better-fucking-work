@@ -1,48 +1,60 @@
 import React, { useState } from 'react';
-import { uploadData, getUrl } from '@aws-amplify/storage';  // Correctly import the methods available in this version
 import './App.css';
+import { withAuthenticator } from '@aws-amplify/ui-react';  // Keep withAuthenticator
+import { uploadData } from '@aws-amplify/storage';
+import { Amplify } from 'aws-amplify';
+import awsExports from './aws-exports';  // Make sure aws-exports is correctly imported
+Amplify.configure(awsExports);
 
-function App() {
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [uploadStatus, setUploadStatus] = useState('');
-  const [outputUrl, setOutputUrl] = useState('');
+function App({ signOut: appSignOut, user }) {
+  const [fileData, setFileData] = useState();
+  const [fileStatus, setFileStatus] = useState(false);
+  const [uploadError, setUploadError] = useState(null);
 
-  const handleFileChange = (event) => {
-    setSelectedFile(event.target.files[0]);
-  };
-
-  const handleUpload = async () => {
-    if (!selectedFile) {
-      alert('Please select a file first!');
+  const uploadFile = async () => {
+    if (!fileData) {
+      console.error('No file selected');
+      setUploadError('No file selected.');
       return;
     }
-    try {
-      // Upload file with public access level
-      const result = await uploadData(selectedFile.name, selectedFile, { level: 'public' });
-      setUploadStatus('File uploaded successfully!');
 
-      // Get URL of the uploaded file with public access
-      const outputFileKey = `output/${selectedFile.name.replace('.fasta', '_output.csv')}`;
-      const outputUrl = await getUrl(outputFileKey, { level: 'public' });
-      setOutputUrl(outputUrl);
+    try {
+      // Ensure only the key (file name) is provided
+
+      const result = await uploadData({
+      key: fileData.name, // The file's name will be used as the key
+      body: fileData, // The file data
+      contentType: fileData.type, // Optionally set the content type
+      });
+
+      setFileStatus(true);
+      setUploadError(null);  // Clear any previous errors
+      console.log('File uploaded successfully:', result);
     } catch (error) {
-      setUploadStatus('Error uploading file');
-      console.error('Error uploading file: ', error);
+      console.error('Error uploading file:', error);
+      setUploadError('Error uploading file.');
     }
   };
 
   return (
     <div className="App">
-      <header className="App-header">
-        <h1>Upload a FASTA File</h1>
-        <input type="file" onChange={handleFileChange} />
-        <button onClick={handleUpload}>Upload</button>
-        <p>{uploadStatus}</p>
-        {outputUrl && <a href={outputUrl} download>Download Output File</a>}
-      </header>
+      {/* This part shows up after the user signs in */}
+      <h1>Hello {user.username}</h1>
+      <button onClick={appSignOut}>Sign out</button>
+
+      <div>
+        <input type="file" onChange={(e) => setFileData(e.target.files[0])} />
+      </div>
+      <div>
+        <button onClick={uploadFile}>Upload file</button>
+      </div>
+
+      {/* Display upload status */}
+      {fileStatus && <p>File uploaded successfully</p>}
+      {uploadError && <p style={{ color: 'red' }}>{uploadError}</p>}
     </div>
   );
 }
 
-export default App;
-
+// Remove manual sign-in logic and let withAuthenticator handle everything
+export default withAuthenticator(App);

@@ -1,0 +1,13 @@
+{
+  "resourceName": "codons",
+  "policyUUID": "08f60996",
+  "bucketName": "codons",
+  "storageAccess": "auth",
+  "guestAccess": [],
+  "authAccess": [
+    "CREATE_AND_UPDATE",
+    "READ"
+  ],
+  "triggerFunction": "NONE",
+  "groupAccess": {}
+}
